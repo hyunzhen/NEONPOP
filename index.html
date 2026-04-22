@@ -131,11 +131,6 @@
         .cell[data-color="purple"] { background: var(--purple); }
         .cell:not([data-type="none"]):hover  { filter: brightness(1.14); }
         .cell:not([data-type="none"]):active { transform: scale(.9); }
-        .cell[data-cover="virus"] { box-shadow: 0 0 0 3px #39ff14, inset 0 0 8px rgba(57,255,20,.4); animation: virusPulse 1.2s ease-in-out infinite; }
-        @keyframes virusPulse {
-            0%,100% { box-shadow: 0 0 0 3px #39ff14, inset 0 0 8px rgba(57,255,20,.4); }
-            50%      { box-shadow: 0 0 0 6px #39ff14, inset 0 0 16px rgba(57,255,20,.7); }
-        }
 
         .gimmick-icon {
             position: absolute; top: 50%; left: 50%;
@@ -285,7 +280,7 @@
         }
         .anim-fall { animation:cellFall var(--ft,.28s) cubic-bezier(.22,1,.36,1) forwards; }
 
-        @keyframes inkPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+        @keyframes inkPulse { 0%,100%{opacity:1; transform:scale(1.08)} 50%{opacity:0.15; transform:scale(1)} }
         @keyframes modalIn  { from{transform:scale(.88) translateY(14px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
         @keyframes scoreImpact {
             0%   { transform:scale(1);    color:var(--text); }
@@ -295,6 +290,88 @@
             100% { transform:scale(1);    color:var(--text); }
         }
         .score-impact { animation:scoreImpact .48s cubic-bezier(.36,.07,.19,.97) forwards; }
+
+        /* ── OPTIONS MODAL ── */
+        .opt-section { margin-bottom:20px; }
+        .opt-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+        .opt-name { font-size:.9rem; font-weight:900; letter-spacing:.5px; }
+        .toggle-wrap { position:relative; width:44px; height:26px; cursor:pointer; flex-shrink:0; }
+        .toggle-wrap input { opacity:0; width:0; height:0; position:absolute; }
+        .toggle-track {
+            position:absolute; inset:0; background:var(--surface2);
+            border-radius:13px; border:var(--bw) solid var(--border); transition:background .2s;
+        }
+        .toggle-wrap input:checked ~ .toggle-track { background:var(--blue); }
+        .toggle-thumb {
+            position:absolute; top:3px; left:3px;
+            width:18px; height:18px; background:#fff; border-radius:50%;
+            transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,.35);
+        }
+        .toggle-wrap input:checked ~ .toggle-track .toggle-thumb { transform:translateX(18px); }
+        .vol-slider {
+            width:100%; height:6px; -webkit-appearance:none; appearance:none;
+            background:var(--surface2); border-radius:3px; cursor:pointer;
+            border:var(--bw) solid var(--border); outline:none;
+        }
+        .vol-slider::-webkit-slider-thumb {
+            -webkit-appearance:none; width:20px; height:20px;
+            border-radius:50%; background:var(--blue); cursor:pointer;
+            box-shadow:0 1px 4px rgba(0,0,0,.4);
+        }
+        .vol-slider::-moz-range-thumb {
+            width:20px; height:20px; border-radius:50%;
+            background:var(--blue); cursor:pointer; border:none;
+        }
+
+        /* ── INK DANGER OVERLAY ── */
+        #ink-danger {
+            position:fixed; bottom:0; left:0; right:0; height:38vh;
+            background:linear-gradient(to top, rgba(255,30,80,.6) 0%, rgba(255,30,80,.18) 55%, transparent 100%);
+            pointer-events:none; z-index:200;
+            opacity:0;
+        }
+        #ink-danger.active { animation:dangerPulse .9s ease-in-out infinite; }
+        @keyframes dangerPulse {
+            0%,100% { opacity:1; }
+            50%     { opacity:0.12; }
+        }
+
+        /* ── PHASE FLASH ── */
+        #phase-flash {
+            position:fixed; inset:0;
+            pointer-events:none; z-index:500;
+            opacity:0;
+        }
+        #phase-flash.active { animation:phaseFlash .65s ease-out forwards; }
+        @keyframes phaseFlash {
+            0%   { opacity:.75; }
+            100% { opacity:0; }
+        }
+
+        /* ── PHASE ANNOUNCE ── */
+        #phase-announce {
+            position:fixed; inset:0;
+            display:flex; flex-direction:column; justify-content:center; align-items:center;
+            pointer-events:none; z-index:600;
+            opacity:0;
+        }
+        #phase-announce.active { animation:phaseAnnounce 1.9s ease-out forwards; }
+        .pa-num {
+            font-size:4.8rem; font-weight:900; letter-spacing:4px; line-height:1;
+            text-shadow:0 0 28px currentColor, 0 0 60px currentColor, 0 0 100px currentColor;
+        }
+        .pa-name {
+            font-size:1.35rem; font-weight:900; letter-spacing:6px; margin-top:10px;
+            opacity:.9;
+            text-shadow:0 0 14px currentColor;
+        }
+        @keyframes phaseAnnounce {
+            0%   { opacity:0; transform:scale(.45); filter:blur(14px); }
+            18%  { opacity:1; transform:scale(1.08); filter:blur(0); }
+            40%  { transform:scale(1);   opacity:1; }
+            72%  { transform:scale(1.02);opacity:1; }
+            100% { transform:scale(1.07);opacity:0; }
+        }
     </style>
 </head>
 <body>
@@ -302,7 +379,10 @@
 
     <header class="header">
         <h1>NEON POP</h1>
-        <button class="theme-btn" id="theme-btn">LIGHT</button>
+        <div style="display:flex;gap:6px;align-items:center;">
+            <button class="theme-btn" id="opt-btn">⚙</button>
+            <button class="theme-btn" id="theme-btn">LIGHT</button>
+        </div>
     </header>
 
     <main class="board-wrap">
@@ -365,6 +445,44 @@
 <div id="t-phase"  class="toast"></div>
 <div id="t-reward" class="toast"></div>
 
+<audio id="bgm" loop preload="auto"></audio>
+
+<div id="opt-modal" class="overlay">
+    <div class="modal">
+        <h2>OPTIONS</h2>
+        <div class="opt-section">
+            <div class="opt-row">
+                <span class="opt-name">BGM</span>
+                <label class="toggle-wrap">
+                    <input type="checkbox" id="bgm-toggle" checked>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+            </div>
+            <input type="range" class="vol-slider" id="bgm-vol" min="0" max="100" value="40">
+        </div>
+        <div class="opt-section">
+            <div class="opt-row">
+                <span class="opt-name">SFX</span>
+                <label class="toggle-wrap">
+                    <input type="checkbox" id="sfx-toggle" checked>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </label>
+            </div>
+            <input type="range" class="vol-slider" id="sfx-vol" min="0" max="100" value="100">
+        </div>
+        <div class="modal-btns">
+            <button id="opt-close" class="btn-secondary">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+<div id="ink-danger"></div>
+<div id="phase-flash"></div>
+<div id="phase-announce">
+    <div class="pa-num" id="pa-num">PHASE 2</div>
+    <div class="pa-name" id="pa-name">LOCK</div>
+</div>
+
 <div id="go-modal" class="overlay">
     <div class="modal">
         <h2>GAME OVER</h2>
@@ -382,17 +500,172 @@
 </div>
 
 <script>
+/* ── SOUND ENGINE (8-BIT) ── */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+const ctx = new AudioCtx();
+const MASTER_VOL = 0.07;
+
+const sfxMaster = ctx.createGain();
+sfxMaster.connect(ctx.destination);
+
+const AudioCfg = {
+    sfxOn: true, bgmOn: true, sfxVol: 1.0, bgmVol: 0.4,
+    load() {
+        try {
+            const s = JSON.parse(localStorage.getItem('neon_audio') || '{}');
+            if (s.sfxOn  !== undefined) this.sfxOn  = s.sfxOn;
+            if (s.bgmOn  !== undefined) this.bgmOn  = s.bgmOn;
+            if (s.sfxVol !== undefined) this.sfxVol = s.sfxVol;
+            if (s.bgmVol !== undefined) this.bgmVol = s.bgmVol;
+        } catch(e) {}
+    },
+    save() {
+        localStorage.setItem('neon_audio', JSON.stringify({
+            sfxOn: this.sfxOn, bgmOn: this.bgmOn, sfxVol: this.sfxVol, bgmVol: this.bgmVol
+        }));
+    },
+    applySfx() { sfxMaster.gain.value = this.sfxOn ? this.sfxVol : 0; },
+    applyBgm() {
+        const el = document.getElementById('bgm');
+        if (!el) return;
+        el.volume = this.bgmOn ? this.bgmVol : 0;
+        if (this.bgmOn && el.paused && bgmStarted) el.play().catch(() => {});
+        if (!this.bgmOn) el.pause();
+    }
+};
+AudioCfg.load();
+AudioCfg.applySfx();
+
+const BGM_FILES = ['Phase_01.mp3','Phase_02.mp3','Phase_03.mp3','Phase_04.mp3','Phase_05.mp3'];
+let bgmStarted = false;
+let currentBgmPhase = -1;
+
+function startBGM() {
+    if (bgmStarted) return;
+    bgmStarted = true;
+    switchBGM(S.phaseIdx);
+}
+
+function switchBGM(phaseIdx) {
+    const el = document.getElementById('bgm');
+    if (!el) return;
+    const newSrc = BGM_FILES[Math.min(phaseIdx, BGM_FILES.length - 1)];
+    currentBgmPhase = phaseIdx;
+    el.src = newSrc;
+    el.volume = AudioCfg.bgmOn ? AudioCfg.bgmVol : 0;
+    if (AudioCfg.bgmOn && bgmStarted) el.play().catch(() => {});
+}
+
+const Sound = {
+    play(type, chain = 0) {
+        if (ctx.state === 'suspended') ctx.resume();
+        switch(type) {
+            case 'click':
+                this.beep(880, 0.1, 'square', MASTER_VOL * 0.62);
+                break;
+            case 'flood':
+                this.arpeggio([440, 554, 659, 880], 0.3, MASTER_VOL * 0.58);
+                break;
+            case 'clear': {
+                // 고주파 = 인지 음량 큼 → 체인 높을수록 보상해서 내림
+                const vol = MASTER_VOL * Math.max(0.38, 0.62 - (chain - 1) * 0.05);
+                if (chain >= 2) {
+                    const notes = [null, null, [659, 880], [659, 880, 1046], [880, 1046, 1318, 1568], [1046, 1318, 1568, 1760, 2093]];
+                    const comboNotes = notes[Math.min(chain, 5)] || [1046, 1318, 1568, 1760, 2093, 2349];
+                    this.arpeggio(comboNotes, 0.4, vol);
+                } else {
+                    this.arpeggio([523, 659, 783], 0.3, vol);
+                }
+                break;
+            }
+            case 'milestone':
+                this.arpeggio([523, 659, 783, 1046, 1318], 0.5, MASTER_VOL * 0.55);
+                break;
+            case 'phase':
+                this.sweep(220, 880, 0.8, MASTER_VOL * 0.60);
+                break;
+            case 'gameover':
+                this.sweep(440, 110, 1.2, MASTER_VOL * 0.58);
+                break;
+            case 'score_tick':
+                // chain = progress 0–1, 진행할수록 피치 상승 / 짧은 소리라 vol 높게
+                this.beep(880 + chain * 350, 0.038, 'square', MASTER_VOL * 0.62);
+                break;
+            case 'ice_hit':
+                // 1760 Hz 고주파 → 인지 음량 매우 큼, 크게 낮춤
+                this.beep(1760, 0.1, 'square', MASTER_VOL * 0.26);
+                break;
+            case 'ice_break':
+                this.noise(0.3, MASTER_VOL * 0.46);
+                break;
+        }
+    },
+    beep(freq, dur, type, vol) {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        osc.connect(gain); gain.connect(sfxMaster);
+        osc.start(); osc.stop(now + dur);
+    },
+    arpeggio(notes, dur, vol) {
+        const now = ctx.currentTime;
+        const step = dur / notes.length;
+        notes.forEach((f, i) => {
+            if (!f) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(f, now + i * step);
+            gain.gain.setValueAtTime(vol, now + i * step);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * step + step * 0.9);
+            osc.connect(gain); gain.connect(sfxMaster);
+            osc.start(now + i * step); osc.stop(now + i * step + step);
+        });
+    },
+    sweep(f1, f2, dur, vol) {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(f1, now);
+        osc.frequency.exponentialRampToValueAtTime(f2, now + dur);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        osc.connect(gain); gain.connect(sfxMaster);
+        osc.start(); osc.stop(now + dur);
+    },
+    noise(dur, vol) {
+        const now = ctx.currentTime;
+        const bufferSize = ctx.sampleRate * dur;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        source.connect(gain); gain.connect(sfxMaster);
+        source.start();
+    }
+};
+
 const GRID = 7;
-const INIT_INK = 10;
+const INIT_INK = 6;
 const WAVE_MS = 32;
 const LS_KEY = 'pictory_neon_v3';
 
+// Break-even (ms/rw) rises monotonically: 8 → 10 → 12 → 14 → 16 blk/turn
 const PHASES = [
-    { id:1, trigger:0,   ms:10, rw:3, colors:['red','blue','yellow'],                 gimmicks:{},                                       name:'START' },
-    { id:2, trigger:15,  ms:12, rw:3, colors:['red','blue','yellow'],                 gimmicks:{lock:.06},                               name:'LOCK'  },
-    { id:3, trigger:45,  ms:14, rw:3, colors:['red','blue','yellow','green'],          gimmicks:{lock:.06, virus:.025},                   name:'VIRUS' },
-    { id:4, trigger:100, ms:18, rw:4, colors:['red','blue','yellow','green'],          gimmicks:{lock:.05, ice:.05, virus:.02},            name:'ICE'   },
-    { id:5, trigger:180, ms:22, rw:5, colors:['red','blue','yellow','green','purple'], gimmicks:{lock:.05, ice:.05, virus:.02, anchor:.03},name:'ULTRA' },
+    { id:1, trigger:0,   ms:16, rw:2, colors:['red','blue','yellow'],                 gimmicks:{},                              name:'START' },
+    { id:2, trigger:15,  ms:20, rw:2, colors:['red','blue','yellow'],                 gimmicks:{lock:.06},                      name:'LOCK'  },
+    { id:3, trigger:45,  ms:24, rw:2, colors:['red','blue','yellow','green'],          gimmicks:{lock:.06},                      name:'4COLOR'},
+    { id:4, trigger:100, ms:28, rw:2, colors:['red','blue','yellow','green'],          gimmicks:{lock:.05, ice:.05},             name:'ICE'   },
+    { id:5, trigger:180, ms:32, rw:2, colors:['red','blue','yellow','green','purple'], gimmicks:{lock:.05, ice:.05, anchor:.03}, name:'ULTRA' },
 ];
 const COMBO_NUMS  = [null,null,'2×','3×','4×','5×','6+'];
 const COMBO_WORDS = [null,null,'NICE!','GREAT!!','FEVER!!!','ULTRA!!!!','LEGEND!!!!!'];
@@ -423,15 +696,20 @@ function drawBag() {
 /* ── INIT ── */
 function initGame() {
     document.getElementById('go-modal').classList.remove('active');
+    const saveBtn = document.getElementById('btn-save');
+    saveBtn.textContent = 'SAVE & RESTART'; saveBtn.disabled = false;
     document.getElementById('combo-el').classList.remove('show');
     scoreDisplayed=0; if(scoreTm){cancelAnimationFrame(scoreTm);scoreTm=null;}
     document.getElementById('el-score').textContent='0';
+    const danger = document.getElementById('ink-danger');
+    if (danger) danger.classList.remove('active');
     Object.assign(S, { score:0, ink:INIT_INK, phaseIdx:0, turns:0, msDone:0, maxChain:0, active:true, busy:false, bag:[], queue:[], qSlots:[] });
     for(let i=0;i<5;i++) S.queue.push(drawBag());
     createBoard();
     buildQueueDOM();
     renderStats();
     renderRankings();
+    if (bgmStarted) { currentBgmPhase = -1; switchBGM(0); }
 }
 
 /* ── BOARD ── */
@@ -475,6 +753,7 @@ function wouldLine(r, c) {
 
 /* ── CLICK ── */
 async function handleClick(r, c) {
+    startBGM();
     if(!S.active || S.busy) return;
     const cell = S.board[r][c];
     if(cell.type==='none'||cell.cover==='lock') return;
@@ -482,9 +761,11 @@ async function handleClick(r, c) {
     if(cell.color === active) return;
 
     S.busy = true;
+    Sound.play('click');
     try {
         S.ink--; S.turns++;
         const wave = collectFlood(r, c, cell.color, active);
+        Sound.play('flood');
         S.queue.shift(); S.queue.push(drawBag());
         await Promise.all([animWave(wave, active), animQueueAdv()]);
 
@@ -493,18 +774,20 @@ async function handleClick(r, c) {
         while(hits.length) {
             chain++;
             if(chain >= 2) showCombo(chain);
+            Sound.play('clear', chain);
             await animClear(hits);
             const earned = applyClear(hits);
             S.score += earned; S.msDone += earned;
+            countUpScore(S.score);
             while(S.msDone >= PHASES[S.phaseIdx].ms) {
                 S.msDone -= PHASES[S.phaseIdx].ms;
                 S.ink += PHASES[S.phaseIdx].rw;
+                Sound.play('milestone');
                 showToast('t-reward', `🎁 +${PHASES[S.phaseIdx].rw} INK`);
             }
             const falling = applyGravity();
             renderBoard();
             await animFall(falling);
-            spreadVirus();
             hits = findLines();
         }
         if(chain > S.maxChain) S.maxChain = chain;
@@ -512,7 +795,12 @@ async function handleClick(r, c) {
         renderStats();
     } finally { S.busy = false; }
 
-    if(S.ink <= 0) { S.ink=0; renderStats(); S.active=false; setTimeout(endGame,300); }
+    if(S.ink <= 0) {
+        S.ink=0; S.active=false;
+        const danger = document.getElementById('ink-danger');
+        if (danger) danger.classList.remove('active');
+        renderStats(); setTimeout(endGame,300);
+    }
 }
 
 /* ── FLOOD FILL ── */
@@ -598,8 +886,15 @@ function applyClear(cells) {
     let n=0;
     for(const[r,c] of cells){
         const cell=S.board[r][c];
-        if(cell.cover==='ice'&&cell.hp>1){ cell.hp--; }
-        else { S.board[r][c]={type:'none',color:null,cover:'none',hp:0,decay:0}; n++; }
+        if(cell.cover==='ice'&&cell.hp>1){ 
+            cell.hp--; 
+            Sound.play('ice_hit');
+        }
+        else { 
+            if(cell.cover==='ice') Sound.play('ice_break');
+            S.board[r][c]={type:'none',color:null,cover:'none',hp:0,decay:0}; 
+            n++; 
+        }
     }
     return n;
 }
@@ -646,8 +941,7 @@ function applyGravity() {
                 let cell={type:'color',color,cover:'none',hp:0,decay:0};
                 const roll=Math.random(); let cum=0;
                 for(const[g,p] of gEntries){ cum+=p; if(roll<cum){
-                    if(g==='virus')       cell={type:'color',color,cover:'virus', hp:0,decay:0};
-                    else if(g==='ice')    cell={type:'color',color,cover:'ice',   hp:Math.random()<.3?2:1,decay:0};
+                    if(g==='ice')         cell={type:'color',color,cover:'ice',   hp:Math.random()<.3?2:1,decay:0};
                     else if(g==='lock')   cell={type:'color',color,cover:'lock',  hp:0,decay:0};
                     else if(g==='anchor') cell={type:'color',color,cover:'anchor',hp:0,decay:0};
                     break;
@@ -680,28 +974,33 @@ async function animFall(falling) {
     await new Promise(res=>setTimeout(res, Math.round(100+maxFd*55+80)));
 }
 
-function spreadVirus() {
-    if(S.turns % 3 !== 0) return;
-    const srcs=[];
-    for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++)
-        if(S.board[r][c].cover==='virus') srcs.push([r,c]);
-    if(!srcs.length) return;
-    const [r,c]=srcs[Math.random()*srcs.length|0];
-    const dirs=[[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([nr,nc])=>
-        nr>=0&&nr<GRID&&nc>=0&&nc<GRID&&
-        S.board[nr][nc].type==='color'&&S.board[nr][nc].cover!=='virus'
-    );
-    if(dirs.length){const[nr,nc]=dirs[Math.random()*dirs.length|0];S.board[nr][nc].cover='virus';}
-}
 
 /* ── PHASE ── */
+const PHASE_COLORS = ['#00CFFF','#BF5FFF','#26DE81','#FFD60A','#FF4D6D'];
+
+function showPhaseAnnounce(idx) {
+    const color = PHASE_COLORS[idx] || '#00CFFF';
+    const flash = document.getElementById('phase-flash');
+    const ann   = document.getElementById('phase-announce');
+    flash.style.background = color;
+    ann.style.color = color;
+    document.getElementById('pa-num').textContent  = `PHASE ${PHASES[idx].id}`;
+    document.getElementById('pa-name').textContent = PHASES[idx].name;
+    flash.classList.remove('active'); void flash.offsetWidth; flash.classList.add('active');
+    ann.classList.remove('active');   void ann.offsetWidth;   ann.classList.add('active');
+    flash.addEventListener('animationend', ()=>flash.classList.remove('active'), {once:true});
+    ann.addEventListener('animationend',   ()=>ann.classList.remove('active'),   {once:true});
+}
+
 function updatePhase() {
-    // Find highest phase whose trigger has been reached
     let newIdx=0;
     for(let i=PHASES.length-1;i>=0;i--){ if(S.turns>=PHASES[i].trigger){newIdx=i;break;} }
     if(newIdx!==S.phaseIdx){
         S.phaseIdx=newIdx; S.bag=[];
+        Sound.play('phase');
         showToast('t-phase', `⚡ PHASE ${PHASES[newIdx].id} — ${PHASES[newIdx].name}`);
+        showPhaseAnnounce(newIdx);
+        if (bgmStarted) switchBGM(newIdx);
     }
 }
 
@@ -712,14 +1011,16 @@ function countUpScore(target) {
     const start=scoreDisplayed;
     if(start===target) return;
     const delta=target-start;
-    const dur=Math.min(520, Math.max(160, delta*9));
+    const dur=Math.min(400, Math.max(120, delta*7));
     const t0=performance.now();
     const el=document.getElementById('el-score');
+    let lastTick=0;
     function tick(now) {
         const p=Math.min(1,(now-t0)/dur);
         const eased=1-Math.pow(2,-10*p);
         scoreDisplayed=Math.round(start+delta*eased);
         el.textContent=scoreDisplayed.toLocaleString();
+        if(now-lastTick>60){ Sound.play('score_tick', p); lastTick=now; }
         if(p<1){ scoreTm=requestAnimationFrame(tick); }
         else {
             scoreDisplayed=target;
@@ -764,7 +1065,6 @@ function setCellDOM(r, c) {
         else if(cell.cover==='ice')    ov.textContent=cell.hp>=2?'🧊🧊':'🧊';
         else if(cell.cover==='anchor') ov.textContent='⚓';
         else if(cell.cover==='fade')   ov.textContent='🌀';
-        else if(cell.cover==='virus')  ov.textContent='🦠';
         el.appendChild(ov);
     }
 }
@@ -805,18 +1105,47 @@ function renderStats() {
     document.getElementById('el-ms-text').textContent=`${S.msDone} / ${p.ms}`;
     document.getElementById('el-ms-reward').textContent=`+${p.rw} INK`;
     document.getElementById('el-ms-bar').style.width=`${Math.min(100,S.msDone/p.ms*100)}%`;
+    const danger = document.getElementById('ink-danger');
+    if (danger) danger.classList.toggle('active', S.ink <= 3 && S.active);
 }
 
-/* ── RANKINGS ── */
-function loadR() { try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch{return[];} }
-function renderRankings() {
-    const list=document.getElementById('rankings'); list.innerHTML='';
-    const ranks=loadR();
-    if(!ranks.length){list.innerHTML='<li class="rank-empty">— No records yet —</li>';return;}
-    ['🥇','🥈','🥉','4.','5.'].forEach((medal,i)=>{
-        if(!ranks[i]) return;
-        const li=document.createElement('li'); li.className='rank-item';
-        li.innerHTML=`<span class="rank-pos">${medal}</span><span class="rank-name">${esc(ranks[i].name)}</span><span class="rank-score">${ranks[i].score.toLocaleString()}</span>`;
+/* ── SUPABASE RANKINGS ── */
+const SB_URL = 'https://vlabmxzluozwueackact.supabase.co/rest/v1';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsYWJteHpsdW96d3VlYWNrYWN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NTc0OTUsImV4cCI6MjA5MjQzMzQ5NX0.gqy6M6GBNimNc9DBgKXR3MevER1gJYje9-VZPPX_Sw8';
+const SB_HDR = { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+
+async function fetchRankings() {
+    try {
+        const res = await fetch(`${SB_URL}/rankings?select=name,score&order=score.desc&limit=10`, { headers: SB_HDR });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch { return null; }
+}
+
+async function saveRanking(name, score) {
+    try {
+        await fetch(`${SB_URL}/rankings`, {
+            method: 'POST',
+            headers: { ...SB_HDR, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ name, score })
+        });
+    } catch {}
+}
+
+const MEDALS = ['🥇','🥈','🥉','4.','5.','6.','7.','8.','9.','10.'];
+
+async function renderRankings() {
+    const list = document.getElementById('rankings');
+    list.innerHTML = '<li class="rank-empty">Loading...</li>';
+    const ranks = await fetchRankings();
+    list.innerHTML = '';
+    if (!ranks || !ranks.length) {
+        list.innerHTML = '<li class="rank-empty">— No records yet —</li>';
+        return;
+    }
+    ranks.forEach((r, i) => {
+        const li = document.createElement('li'); li.className = 'rank-item';
+        li.innerHTML = `<span class="rank-pos">${MEDALS[i] || `${i+1}.`}</span><span class="rank-name">${esc(r.name)}</span><span class="rank-score">${r.score.toLocaleString()}</span>`;
         list.appendChild(li);
     });
 }
@@ -832,6 +1161,7 @@ function showToast(id,msg){
 
 /* ── GAME OVER ── */
 function endGame() {
+    Sound.play('gameover');
     document.getElementById('go-score').textContent=S.score.toLocaleString();
     document.getElementById('go-chain').textContent=S.maxChain;
     document.getElementById('go-turns').textContent=S.turns;
@@ -841,11 +1171,11 @@ function endGame() {
 }
 
 /* ── EVENTS ── */
-document.getElementById('btn-save').onclick=()=>{
-    const name=(document.getElementById('nick-input').value.trim().toUpperCase()||'PLAYER').slice(0,8);
-    const ranks=loadR(); ranks.push({name,score:S.score});
-    ranks.sort((a,b)=>b.score-a.score);
-    localStorage.setItem(LS_KEY,JSON.stringify(ranks.slice(0,5)));
+document.getElementById('btn-save').onclick = async () => {
+    const name = (document.getElementById('nick-input').value.trim().toUpperCase() || 'PLAYER').slice(0, 8);
+    document.getElementById('btn-save').textContent = 'SAVING...';
+    document.getElementById('btn-save').disabled = true;
+    await saveRanking(name, S.score);
     initGame();
 };
 document.getElementById('btn-restart').onclick=initGame;
@@ -856,6 +1186,34 @@ document.getElementById('theme-btn').addEventListener('click',()=>{
     document.getElementById('theme-btn').textContent=next==='dark'?'LIGHT':'DARK';
     renderBoard();
 });
+
+/* ── OPTIONS MODAL ── */
+function openOptions() {
+    document.getElementById('bgm-toggle').checked = AudioCfg.bgmOn;
+    document.getElementById('sfx-toggle').checked = AudioCfg.sfxOn;
+    document.getElementById('bgm-vol').value = Math.round(AudioCfg.bgmVol * 100);
+    document.getElementById('sfx-vol').value = Math.round(AudioCfg.sfxVol * 100);
+    document.getElementById('opt-modal').classList.add('active');
+}
+function closeOptions() { document.getElementById('opt-modal').classList.remove('active'); }
+
+document.getElementById('opt-btn').addEventListener('click', openOptions);
+document.getElementById('opt-close').addEventListener('click', closeOptions);
+document.getElementById('opt-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('opt-modal')) closeOptions();
+});
+document.getElementById('bgm-toggle').addEventListener('change', e => {
+    AudioCfg.bgmOn = e.target.checked; AudioCfg.applyBgm(); AudioCfg.save();
+});
+document.getElementById('sfx-toggle').addEventListener('change', e => {
+    AudioCfg.sfxOn = e.target.checked; AudioCfg.applySfx(); AudioCfg.save();
+});
+document.getElementById('bgm-vol').addEventListener('input', e => {
+    AudioCfg.bgmVol = e.target.value / 100; AudioCfg.applyBgm(); AudioCfg.save();
+});
+document.getElementById('sfx-vol').addEventListener('input', e => {
+    AudioCfg.sfxVol = e.target.value / 100; AudioCfg.applySfx(); AudioCfg.save();
+});
 document.getElementById('go-modal').addEventListener('click',e=>{
     if(e.target===document.getElementById('go-modal')) initGame();
 });
@@ -864,3 +1222,4 @@ initGame();
 </script>
 </body>
 </html>
+
