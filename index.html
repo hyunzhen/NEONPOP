@@ -124,14 +124,18 @@
         }
         .cell[data-type="none"]   { background: var(--cell-empty); cursor: default; }
         .cell[data-type="none"]::after { display: none; }
-        .cell[data-type="stone"]  { background: #1E1E2C; cursor: not-allowed; box-shadow: inset 0 2px 10px rgba(0,0,0,.7); }
         .cell[data-color="red"]    { background: var(--red); }
         .cell[data-color="blue"]   { background: var(--blue); }
         .cell[data-color="yellow"] { background: var(--yellow); }
         .cell[data-color="green"]  { background: var(--green); }
         .cell[data-color="purple"] { background: var(--purple); }
-        .cell:not([data-type="none"]):not([data-type="stone"]):hover  { filter: brightness(1.14); }
-        .cell:not([data-type="none"]):not([data-type="stone"]):active { transform: scale(.9); }
+        .cell:not([data-type="none"]):hover  { filter: brightness(1.14); }
+        .cell:not([data-type="none"]):active { transform: scale(.9); }
+        .cell[data-cover="virus"] { box-shadow: 0 0 0 3px #39ff14, inset 0 0 8px rgba(57,255,20,.4); animation: virusPulse 1.2s ease-in-out infinite; }
+        @keyframes virusPulse {
+            0%,100% { box-shadow: 0 0 0 3px #39ff14, inset 0 0 8px rgba(57,255,20,.4); }
+            50%      { box-shadow: 0 0 0 6px #39ff14, inset 0 0 16px rgba(57,255,20,.7); }
+        }
 
         .gimmick-icon {
             position: absolute; top: 50%; left: 50%;
@@ -139,12 +143,6 @@
             font-size: 1.1rem; pointer-events: none; z-index: 2;
             filter: drop-shadow(0 1px 3px rgba(0,0,0,.8));
             line-height: 1;
-        }
-        .stone-decay {
-            position: absolute; bottom: 1px; right: 3px;
-            font-size: .5rem; font-weight: 800;
-            color: #fff; text-shadow: 0 0 4px rgba(0,0,0,.9);
-            pointer-events: none; line-height: 1; z-index: 3;
         }
 
         /* ── PANEL ── */
@@ -385,25 +383,16 @@
 
 <script>
 const GRID = 7;
-const INIT_INK = 15;
-const STONE_DECAY = 7;   // was 10 — stones expire faster
-const MAX_STONES  = 2;   // hard cap: at most 2 stones on board at once
+const INIT_INK = 10;
 const WAVE_MS = 32;
 const LS_KEY = 'pictory_neon_v3';
 
-// Balance rationale per phase (ms=milestone threshold, rw=ink reward)
-// Break-even ink/turn = rw / ms. Player needs score ≥ ms blocks per rw turns.
-// Phase 1: 12/5 = 2.4 blk/turn  (easy intro)
-// Phase 2: 15/4 = 3.75 blk/turn (lock slows flood fill)
-// Phase 3: 18/5 = 3.6 blk/turn  (4 colors + stone cap 2, manageable)
-// Phase 4: 22/5 = 4.4 blk/turn  (ice needs 2 hits, tighter)
-// Phase 5: 26/6 = 4.3 blk/turn  (5 colors hard lines, but +6 ink offsets)
 const PHASES = [
-    { id:1, trigger:0,   ms:12, rw:5, colors:['red','blue','yellow'],                 gimmicks:{},                                   name:'START' },
-    { id:2, trigger:25,  ms:15, rw:4, colors:['red','blue','yellow'],                 gimmicks:{lock:.06},                           name:'LOCK'  },
-    { id:3, trigger:75,  ms:18, rw:5, colors:['red','blue','yellow','green'],          gimmicks:{lock:.06, stone:.015},               name:'STONE' },
-    { id:4, trigger:160, ms:22, rw:5, colors:['red','blue','yellow','green'],          gimmicks:{lock:.05, ice:.05, stone:.01},        name:'ICE'   },
-    { id:5, trigger:290, ms:26, rw:6, colors:['red','blue','yellow','green','purple'], gimmicks:{lock:.05, ice:.05, stone:.01, anchor:.03}, name:'ULTRA'},
+    { id:1, trigger:0,   ms:10, rw:3, colors:['red','blue','yellow'],                 gimmicks:{},                                       name:'START' },
+    { id:2, trigger:15,  ms:12, rw:3, colors:['red','blue','yellow'],                 gimmicks:{lock:.06},                               name:'LOCK'  },
+    { id:3, trigger:45,  ms:14, rw:3, colors:['red','blue','yellow','green'],          gimmicks:{lock:.06, virus:.025},                   name:'VIRUS' },
+    { id:4, trigger:100, ms:18, rw:4, colors:['red','blue','yellow','green'],          gimmicks:{lock:.05, ice:.05, virus:.02},            name:'ICE'   },
+    { id:5, trigger:180, ms:22, rw:5, colors:['red','blue','yellow','green','purple'], gimmicks:{lock:.05, ice:.05, virus:.02, anchor:.03},name:'ULTRA' },
 ];
 const COMBO_NUMS  = [null,null,'2×','3×','4×','5×','6+'];
 const COMBO_WORDS = [null,null,'NICE!','GREAT!!','FEVER!!!','ULTRA!!!!','LEGEND!!!!!'];
@@ -488,7 +477,7 @@ function wouldLine(r, c) {
 async function handleClick(r, c) {
     if(!S.active || S.busy) return;
     const cell = S.board[r][c];
-    if(cell.type==='none'||cell.type==='stone'||cell.cover==='lock') return;
+    if(cell.type==='none'||cell.cover==='lock') return;
     const active = S.queue[0];
     if(cell.color === active) return;
 
@@ -515,7 +504,7 @@ async function handleClick(r, c) {
             const falling = applyGravity();
             renderBoard();
             await animFall(falling);
-            decayStones();
+            spreadVirus();
             hits = findLines();
         }
         if(chain > S.maxChain) S.maxChain = chain;
@@ -608,7 +597,7 @@ async function animClear(cells) {
 function applyClear(cells) {
     let n=0;
     for(const[r,c] of cells){
-        const cell=S.board[r][c]; if(cell.type==='stone') continue;
+        const cell=S.board[r][c];
         if(cell.cover==='ice'&&cell.hp>1){ cell.hp--; }
         else { S.board[r][c]={type:'none',color:null,cover:'none',hp:0,decay:0}; n++; }
     }
@@ -619,9 +608,6 @@ function applyClear(cells) {
 function applyGravity() {
     const falling=[];
     const colors=PHASES[S.phaseIdx].colors;
-    // Count stones before spawning so the cap holds across all columns this turn
-    let stoneCount=0;
-    for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++) if(S.board[r][c].type==='stone') stoneCount++;
     for(let c=0;c<GRID;c++){
         // Snapshot existing piece rows (before gravity)
         const srcRows=[];
@@ -660,10 +646,8 @@ function applyGravity() {
                 let cell={type:'color',color,cover:'none',hp:0,decay:0};
                 const roll=Math.random(); let cum=0;
                 for(const[g,p] of gEntries){ cum+=p; if(roll<cum){
-                    if(g==='stone'){
-                        // Only spawn stone if under the hard cap; otherwise fall through to plain piece
-                        if(stoneCount < MAX_STONES){ cell={type:'stone',color:null,cover:'none',hp:0,decay:STONE_DECAY}; stoneCount++; }
-                    } else if(g==='ice')    cell={type:'color',color,cover:'ice', hp:Math.random()<.3?2:1,decay:0};
+                    if(g==='virus')       cell={type:'color',color,cover:'virus', hp:0,decay:0};
+                    else if(g==='ice')    cell={type:'color',color,cover:'ice',   hp:Math.random()<.3?2:1,decay:0};
                     else if(g==='lock')   cell={type:'color',color,cover:'lock',  hp:0,decay:0};
                     else if(g==='anchor') cell={type:'color',color,cover:'anchor',hp:0,decay:0};
                     break;
@@ -696,11 +680,18 @@ async function animFall(falling) {
     await new Promise(res=>setTimeout(res, Math.round(100+maxFd*55+80)));
 }
 
-function decayStones() {
-    for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++){
-        if(S.board[r][c].type==='stone'&&--S.board[r][c].decay<=0)
-            S.board[r][c]={type:'none',color:null,cover:'none',hp:0,decay:0};
-    }
+function spreadVirus() {
+    if(S.turns % 3 !== 0) return;
+    const srcs=[];
+    for(let r=0;r<GRID;r++) for(let c=0;c<GRID;c++)
+        if(S.board[r][c].cover==='virus') srcs.push([r,c]);
+    if(!srcs.length) return;
+    const [r,c]=srcs[Math.random()*srcs.length|0];
+    const dirs=[[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([nr,nc])=>
+        nr>=0&&nr<GRID&&nc>=0&&nc<GRID&&
+        S.board[nr][nc].type==='color'&&S.board[nr][nc].cover!=='virus'
+    );
+    if(dirs.length){const[nr,nc]=dirs[Math.random()*dirs.length|0];S.board[nr][nc].cover='virus';}
 }
 
 /* ── PHASE ── */
@@ -765,20 +756,16 @@ function setCellDOM(r, c) {
     el.dataset.type=cell.type; el.dataset.color=cell.color||'none';
     el.innerHTML=''; el.classList.remove('anim-clear','anim-pop','anim-spawn');
     el.style.transform=''; el.style.transition='';
-    if(cell.type==='stone'){
-        el.style.boxShadow='inset 0 2px 10px rgba(0,0,0,.7)';
-        const icon=document.createElement('span'); icon.className='gimmick-icon'; icon.textContent='🪨'; el.appendChild(icon);
-        const badge=document.createElement('span'); badge.className='stone-decay'; badge.textContent=cell.decay; el.appendChild(badge);
-    } else {
-        el.style.boxShadow='none';
-        if(cell.cover!=='none'){
-            const ov=document.createElement('span'); ov.className='gimmick-icon';
-            if(cell.cover==='lock')   ov.textContent='🔒';
-            else if(cell.cover==='ice') ov.textContent=cell.hp>=2?'🧊🧊':'🧊';
-            else if(cell.cover==='anchor') ov.textContent='⚓';
-            else if(cell.cover==='fade')   ov.textContent='🌀';
-            el.appendChild(ov);
-        }
+    el.dataset.cover=cell.cover;
+    el.style.boxShadow='none';
+    if(cell.cover!=='none'){
+        const ov=document.createElement('span'); ov.className='gimmick-icon';
+        if(cell.cover==='lock')        ov.textContent='🔒';
+        else if(cell.cover==='ice')    ov.textContent=cell.hp>=2?'🧊🧊':'🧊';
+        else if(cell.cover==='anchor') ov.textContent='⚓';
+        else if(cell.cover==='fade')   ov.textContent='🌀';
+        else if(cell.cover==='virus')  ov.textContent='🦠';
+        el.appendChild(ov);
     }
 }
 
