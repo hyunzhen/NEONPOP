@@ -549,9 +549,10 @@ function startBGM() {
 function switchBGM(phaseIdx) {
     const el = document.getElementById('bgm');
     if (!el) return;
-    const newSrc = BGM_FILES[Math.min(phaseIdx, BGM_FILES.length - 1)];
+    // 10 phases mapped to 5 BGM files: 0-1→0, 2-3→1, 4-5→2, 6-7→3, 8-9→4
+    const bgmIdx = Math.min(Math.floor(phaseIdx / 2), BGM_FILES.length - 1);
     currentBgmPhase = phaseIdx;
-    el.src = newSrc;
+    el.src = BGM_FILES[bgmIdx];
     el.volume = AudioCfg.bgmOn ? AudioCfg.bgmVol : 0;
     if (AudioCfg.bgmOn && bgmStarted) el.play().catch(() => {});
 }
@@ -659,13 +660,19 @@ const INIT_INK = 6;
 const WAVE_MS = 32;
 const LS_KEY = 'pictory_neon_v3';
 
-// Break-even (ms/rw) rises monotonically: 8 → 10 → 12 → 14 → 16 blk/turn
+// Break-even (ms/rw) rises monotonically: 8→9→10→11→12→13→14→15→16→18 blk/turn
+// Color expansion is the final difficulty spike (Phase 8~10)
 const PHASES = [
-    { id:1, trigger:0,   ms:16, rw:2, colors:['red','blue','yellow'],                 gimmicks:{},                              name:'START' },
-    { id:2, trigger:15,  ms:20, rw:2, colors:['red','blue','yellow'],                 gimmicks:{lock:.06},                      name:'LOCK'  },
-    { id:3, trigger:45,  ms:24, rw:2, colors:['red','blue','yellow','green'],          gimmicks:{lock:.06},                      name:'4COLOR'},
-    { id:4, trigger:100, ms:28, rw:2, colors:['red','blue','yellow','green'],          gimmicks:{lock:.05, ice:.05},             name:'ICE'   },
-    { id:5, trigger:180, ms:32, rw:2, colors:['red','blue','yellow','green','purple'], gimmicks:{lock:.05, ice:.05, anchor:.03}, name:'ULTRA' },
+    { id:1,  trigger:0,   ms:16, rw:2, colors:['red','blue','yellow'],                 gimmicks:{},                                name:'START'   },
+    { id:2,  trigger:15,  ms:18, rw:2, colors:['red','blue','yellow'],                 gimmicks:{lock:.05},                        name:'LOCK'    },
+    { id:3,  trigger:35,  ms:20, rw:2, colors:['red','blue','yellow'],                 gimmicks:{lock:.08},                        name:'LOCK+'   },
+    { id:4,  trigger:60,  ms:22, rw:2, colors:['red','blue','yellow'],                 gimmicks:{lock:.07, ice:.04},               name:'ICE'     },
+    { id:5,  trigger:90,  ms:24, rw:2, colors:['red','blue','yellow'],                 gimmicks:{lock:.07, ice:.07},               name:'ICE+'    },
+    { id:6,  trigger:125, ms:26, rw:2, colors:['red','blue','yellow'],                 gimmicks:{lock:.06, ice:.06, anchor:.03},   name:'ANCHOR'  },
+    { id:7,  trigger:165, ms:28, rw:2, colors:['red','blue','yellow'],                 gimmicks:{lock:.07, ice:.07, anchor:.05},   name:'ANCHOR+' },
+    { id:8,  trigger:210, ms:30, rw:2, colors:['red','blue','yellow','green'],          gimmicks:{lock:.06, ice:.06, anchor:.04},   name:'4COLOR'  },
+    { id:9,  trigger:260, ms:32, rw:2, colors:['red','blue','yellow','green'],          gimmicks:{lock:.07, ice:.07, anchor:.05},   name:'4COLOR+' },
+    { id:10, trigger:320, ms:36, rw:2, colors:['red','blue','yellow','green','purple'], gimmicks:{lock:.07, ice:.07, anchor:.06},   name:'ULTRA'   },
 ];
 const COMBO_NUMS  = [null,null,'2×','3×','4×','5×','6+'];
 const COMBO_WORDS = [null,null,'NICE!','GREAT!!','FEVER!!!','ULTRA!!!!','LEGEND!!!!!'];
@@ -976,7 +983,7 @@ async function animFall(falling) {
 
 
 /* ── PHASE ── */
-const PHASE_COLORS = ['#00CFFF','#BF5FFF','#26DE81','#FFD60A','#FF4D6D'];
+const PHASE_COLORS = ['#00CFFF','#7878FF','#BF5FFF','#26DE81','#00E5CC','#FFD60A','#FF9A00','#FF6B35','#FF4D6D','#FFFFFF'];
 
 function showPhaseAnnounce(idx) {
     const color = PHASE_COLORS[idx] || '#00CFFF';
