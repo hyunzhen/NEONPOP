@@ -291,6 +291,24 @@
         }
         .score-impact { animation:scoreImpact .48s cubic-bezier(.36,.07,.19,.97) forwards; }
 
+        /* ── HELP MODAL ── */
+        .help-body { text-align:left; font-size:.84rem; line-height:1.7; color:var(--text); }
+        .help-section { margin-bottom:16px; }
+        .help-section-title {
+            font-size:.65rem; font-weight:900; letter-spacing:2px;
+            color:var(--text2); text-transform:uppercase; margin-bottom:6px;
+        }
+        .help-body p { margin-bottom:4px; }
+        .help-gimmick {
+            display:flex; gap:10px; align-items:flex-start;
+            background:var(--bg); border-radius:10px;
+            padding:9px 12px; margin-bottom:6px;
+            border:var(--bw) solid var(--border);
+        }
+        .help-gimmick-icon { font-size:1.2rem; flex-shrink:0; line-height:1.5; }
+        .help-gimmick-desc { font-size:.8rem; line-height:1.55; }
+        .help-gimmick-name { font-weight:900; margin-bottom:1px; }
+
         /* ── OPTIONS MODAL ── */
         .opt-section { margin-bottom:20px; }
         .opt-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
@@ -380,6 +398,7 @@
     <header class="header">
         <h1>NEON POP</h1>
         <div style="display:flex;gap:6px;align-items:center;">
+            <button class="theme-btn" id="help-btn">?</button>
             <button class="theme-btn" id="opt-btn">⚙</button>
             <button class="theme-btn" id="theme-btn">LIGHT</button>
         </div>
@@ -446,6 +465,68 @@
 <div id="t-reward" class="toast"></div>
 
 <audio id="bgm" loop preload="auto"></audio>
+
+<div id="help-modal" class="overlay">
+    <div class="modal" style="max-height:88dvh;overflow-y:auto;text-align:left;">
+        <h2 style="text-align:center;margin-bottom:20px;">HOW TO PLAY</h2>
+        <div class="help-body">
+
+            <div class="help-section">
+                <div class="help-section-title">기본 규칙</div>
+                <p>🎨 상단 <strong>Color Queue</strong>의 첫 번째 색이 현재 잉크 색입니다.</p>
+                <p>👆 셀을 클릭하면 연결된 같은 색 블록이 모두 잉크 색으로 물듭니다.</p>
+                <p>💥 가로 또는 세로 7칸이 같은 색으로 가득 차면 <strong>라인 클리어!</strong></p>
+                <p>🔗 연속으로 클리어하면 <strong>콤보 보너스</strong>가 쌓입니다.</p>
+            </div>
+
+            <div class="help-section">
+                <div class="help-section-title">잉크 시스템</div>
+                <p>🖊️ 클릭할 때마다 <strong>잉크 1개</strong> 소모됩니다.</p>
+                <p>🎁 <strong>Next Milestone</strong>을 달성하면 잉크가 충전됩니다.</p>
+                <p>⚠️ 잉크가 <strong>3개 이하</strong>면 화면이 붉게 경고합니다.</p>
+                <p>💀 잉크가 <strong>0</strong>이 되면 게임 오버!</p>
+            </div>
+
+            <div class="help-section">
+                <div class="help-section-title">기믹</div>
+                <div class="help-gimmick">
+                    <div class="help-gimmick-icon">🔒</div>
+                    <div class="help-gimmick-desc">
+                        <div class="help-gimmick-name">자물쇠</div>
+                        클릭할 수 없습니다. 라인 클리어에 포함되면 자동으로 제거됩니다.
+                    </div>
+                </div>
+                <div class="help-gimmick">
+                    <div class="help-gimmick-icon">🧊</div>
+                    <div class="help-gimmick-desc">
+                        <div class="help-gimmick-name">얼음</div>
+                        라인 클리어될 때마다 HP가 1 깎입니다. HP 0이 되면 제거.<br>
+                        🧊🧊는 HP 2로, 두 번 클리어해야 합니다.
+                    </div>
+                </div>
+                <div class="help-gimmick">
+                    <div class="help-gimmick-icon">⚓</div>
+                    <div class="help-gimmick-desc">
+                        <div class="help-gimmick-name">닻</div>
+                        중력의 영향을 받지 않아 위치가 고정됩니다. 라인 클리어에 포함되면 제거됩니다.
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <div class="help-section-title">Phase 시스템</div>
+                <p>⚡ 턴이 쌓일수록 Phase가 올라갑니다. (총 10단계)</p>
+                <p>Phase 1~7은 기믹만 강해지고, <strong>Phase 8부터 색상이 늘어납니다.</strong></p>
+                <p>🟢 Phase 8 — 초록색 추가 (4색)</p>
+                <p>🟣 Phase 10 — 보라색 추가 (5색) · ULTRA</p>
+            </div>
+
+        </div>
+        <div class="modal-btns" style="margin-top:8px;">
+            <button id="help-close" class="btn-secondary">닫기</button>
+        </div>
+    </div>
+</div>
 
 <div id="opt-modal" class="overlay">
     <div class="modal">
@@ -539,6 +620,7 @@ AudioCfg.applySfx();
 const BGM_FILES = ['Phase_01.mp3','Phase_02.mp3','Phase_03.mp3','Phase_04.mp3','Phase_05.mp3'];
 let bgmStarted = false;
 let currentBgmPhase = -1;
+let currentBgmIdx = -1;
 
 function startBGM() {
     if (bgmStarted) return;
@@ -552,6 +634,8 @@ function switchBGM(phaseIdx) {
     // 10 phases mapped to 5 BGM files: 0-1→0, 2-3→1, 4-5→2, 6-7→3, 8-9→4
     const bgmIdx = Math.min(Math.floor(phaseIdx / 2), BGM_FILES.length - 1);
     currentBgmPhase = phaseIdx;
+    if (bgmIdx === currentBgmIdx) return; // 같은 파일이면 재생 유지
+    currentBgmIdx = bgmIdx;
     el.src = BGM_FILES[bgmIdx];
     el.volume = AudioCfg.bgmOn ? AudioCfg.bgmVol : 0;
     if (AudioCfg.bgmOn && bgmStarted) el.play().catch(() => {});
@@ -716,7 +800,7 @@ function initGame() {
     buildQueueDOM();
     renderStats();
     renderRankings();
-    if (bgmStarted) { currentBgmPhase = -1; switchBGM(0); }
+    if (bgmStarted) { currentBgmPhase = -1; currentBgmIdx = -1; switchBGM(0); }
 }
 
 /* ── BOARD ── */
@@ -1203,6 +1287,10 @@ function openOptions() {
     document.getElementById('opt-modal').classList.add('active');
 }
 function closeOptions() { document.getElementById('opt-modal').classList.remove('active'); }
+
+document.getElementById('help-btn').addEventListener('click', () => document.getElementById('help-modal').classList.add('active'));
+document.getElementById('help-close').addEventListener('click', () => document.getElementById('help-modal').classList.remove('active'));
+document.getElementById('help-modal').addEventListener('click', e => { if (e.target === document.getElementById('help-modal')) document.getElementById('help-modal').classList.remove('active'); });
 
 document.getElementById('opt-btn').addEventListener('click', openOptions);
 document.getElementById('opt-close').addEventListener('click', closeOptions);
